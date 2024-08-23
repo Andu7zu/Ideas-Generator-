@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Ideas</title>
+    <style>
+        table, th, td {
+            border: 1px solid black;
+            border-collapse: collapse;
+            padding: 5px;
+        }
+        #loadingIndicator {
+            display: none;
+            font-style: italic;
+        }
+        #logField {
+            width: 98%;
+            height: 350px;
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            background-color: #f9f9f9;
+            overflow-y: auto;
+        }
+        #inputContainer {
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+        }
+        #userInput {
+            flex-grow: 1;
+            padding: 5px;
+            margin-right: 10px;
+        }
+        #sendButton {
+            padding: 5px 10px;
+        }
+        .user-message {
+            background-color: rgba(7, 104, 211, 0.45);
+            border-radius: 10px;
+            padding: 5px 10px;
+            margin: 5px 0;
+            display: inline-block;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+        .server-message {
+            background-color: rgba(33, 237, 11, 0.45);
+            border-radius: 10px;
+            padding: 5px 10px;
+            margin: 5px 0;
+            /*display: inline-block;*/
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body>
+<h1>Project Ideas</h1>
+<div id="loadingIndicator">Loading ideas...</div>
+<table id="ideasTable" style="display: none;">
+    <thead>
+    <tr>
+        <th>Title</th>
+        <th>Description</th>
+        <th>APIs Used</th>
+        <th>Actions</th>
+    </tr>
+    </thead>
+    <tbody id="ideasTableBody">
+    <!-- Table rows will be inserted here -->
+    </tbody>
+</table>
+
+<!-- New Section for Log Field, Input, and Send Button -->
+<div>
+    <div id="logField"></div>
+    <div id="inputContainer">
+        <input type="text" id="userInput" placeholder="Enter your text here...">
+        <button id="sendButton" onclick="sendText()">Send</button>
+    </div>
+</div>
+
+<script>
+    // Function to create table rows
+    function createTableRows(ideas) {
+        const tableBody = document.getElementById('ideasTableBody');
+
+        ideas.forEach((idea, index) => {
+            const row = document.createElement('tr');
+
+            // Title
+            const titleCell = document.createElement('td');
+            titleCell.textContent = index + ". " + idea.title;
+            row.appendChild(titleCell);
+
+            // Description
+            const descCell = document.createElement('td');
+            descCell.textContent = idea.description;
+            row.appendChild(descCell);
+
+            // APIs
+            const apisCell = document.createElement('td');
+            const apiList = document.createElement('ul');
+            idea.apis.forEach(api => {
+                const apiItem = document.createElement('li');
+
+                // Extract API name and URL
+                const apiName = api.substring(0, api.indexOf('(') - 1);
+                const apiUrl = api.substring(api.indexOf('(') + 1, api.indexOf(')'));
+
+                // Create a clickable link for the API
+                const apiLink = document.createElement('a');
+                apiLink.href = apiUrl;
+                apiLink.textContent = apiName;
+                apiLink.target = "_blank";  // Open link in a new tab
+
+                apiItem.appendChild(apiLink);
+                apiList.appendChild(apiItem);
+            });
+            apisCell.appendChild(apiList);
+            row.appendChild(apisCell);
+
+            // Action button
+            const actionCell = document.createElement('td');
+            const actionButton = document.createElement('button');
+            actionButton.textContent = 'Download Idea';
+            actionButton.onclick = function() { downloadIdea(index); };
+            actionCell.appendChild(actionButton);
+            row.appendChild(actionCell);
+
+            tableBody.appendChild(row);
+        });
+    }
+
+    // Function to handle idea download (placeholder)
+    function downloadIdea(id) {
+        fetch(`/ideas/download/${id}`, {
+            method: 'POST',
+        })
+            .then(response => {
+                if (response.ok) {
+                    const fileName = response.headers.get('X-Filename'); // Get the filename from the header
+                    return response.blob().then(blob => ({ blob, fileName }));
+                }
+                throw new Error('Network response was not ok.');
+            })
+            .then(({ blob, fileName }) => {
+                const url = window.URL.createObjectURL(new Blob([blob]));
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', fileName); // Set the file name to the one from the header
+                document.body.appendChild(link);
+                link.click();
+                link.parentNode.removeChild(link);
+            })
+            .catch(error => console.error('Error:', error));
+    }
+
+    // Function to fetch ideas and create table
+    function fetchIdeasAndCreateTable() {
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const ideasTable = document.getElementById('ideasTable');
+
+        loadingIndicator.style.display = 'block';
+        ideasTable.style.display = 'none';
+
+        fetch('http://localhost:8081/ideas/generate', {
+            method: 'POST',
+        })
+            .then(response => response.json())
+            .then(ideas => {
+                createTableRows(ideas);
+                loadingIndicator.style.display = 'none';
+                ideasTable.style.display = 'table';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                loadingIndicator.textContent = 'Error loading ideas. Please try again.';
+            });
+    }
+
+    // Function to handle sending text and appending to the log field
+    function sendText(event) {
+        const userInput = document.getElementById('userInput');
+        const sendButton = document.getElementById('sendButton');
+        const logField = document.getElementById('logField');
+
+        // Check if the event is a keypress and if it's not the Enter key, do nothing
+        if (event && event.type === 'keypress' && event.key !== 'Enter') {
+            return;
+        }
+
+        // Trim whitespace and check if the input is empty
+        const userText = userInput.value.trim();
+        if (userText.length === 0) {
+            return; // Do not append if the input is empty or just whitespace
+        }
+
+        // Append user message with styling
+        const userMessageElement = document.createElement('div');
+        userMessageElement.className = 'user-message';
+        userMessageElement.textContent = userText;
+        logField.appendChild(userMessageElement);
+
+        // Scroll to the bottom of the log field
+        logField.scrollTop = logField.scrollHeight;
+
+        // Disable the input field and send button to prevent further input
+        userInput.disabled = true;
+        sendButton.disabled = true;
+
+        // Send a POST request to the /askLLM endpoint
+        fetch('http://localhost:8081/ideas/askLLM', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams({ context: userText })
+        })
+            .then(response => response.text())
+            .then(responseText => {
+                // Append the response text to the log field
+                const serverMessageElement = document.createElement('div');
+                serverMessageElement.className = 'server-message';
+                serverMessageElement.textContent = responseText;
+                logField.appendChild(serverMessageElement);
+
+                // Scroll to the bottom of the log field
+                logField.scrollTop = logField.scrollHeight;
+
+                // Clear the input field after sending
+                userInput.value = '';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                const errorMessageElement = document.createElement('div');
+                errorMessageElement.className = 'server-message';
+                errorMessageElement.textContent = 'Error: Unable to process your request';
+                logField.appendChild(errorMessageElement);
+                logField.scrollTop = logField.scrollHeight;
+            })
+            .finally(() => {
+                // Re-enable the input field and send button after processing
+                userInput.disabled = false;
+                sendButton.disabled = false;
+
+                // Set focus back to the input field for user convenience
+                userInput.focus();
+            });
+    }
+
+    // Attach event listeners
+    document.getElementById('userInput').addEventListener('keypress', sendText);
+    document.getElementById('sendButton').addEventListener('click', sendText);
+
+    // Call the function to fetch ideas and create table when the page loads
+    window.onload = fetchIdeasAndCreateTable;
+</script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Project Ideas</title>
+</head>
+<body>
+<h1>Project Ideas</h1>
+<table border="1">
+    <thead>
+    <tr>
+        <th>Title</th>
+        <th>Description</th>
+        <th>APIs Used</th>
+        <th>Actions</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="idea, iter : ${ideas}">
+        <td th:text="${idea.title}"></td>
+        <td th:text="${idea.description}"></td>
+
+        <td>
+            <ul>
+                <li th:each="api : ${idea.apis}" th:text="${api}"></li>
+            </ul>
+        </td>
+        <td>
+            <!-- Increment the button ID using the iter.index -->
+            <button onClick = "downloadIdea(this.id)"type="button" th:id="${iter.index}">Action</button>
+        </td>
+    </tr>
+    <script>
+        function downloadIdea(id) {
+            fetch(`/ideas/download/${id}`, {
+                method: 'POST',
+            })
+                .then(response => response.text())
+                .then(data => console.log(data))
+                .catch(error => console.error('Error:', error));
+        }
+    </script>
+    </tbody>
+</table>
+</body>
+</html>
