@@ -41,6 +41,7 @@ Ensure you have the following installed:
 - Maven
 - Spring Boot
 - LangChain4j library
+- Local LLM (Llama3)
 
 ### Installation
 
